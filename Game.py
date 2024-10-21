@@ -248,8 +248,8 @@ class Game:
                 return (grid_x, grid_y)
                 
             # Move the ray forward by a small amount
-            ray_x += ray_dir_x * 0.1
-            ray_y += ray_dir_y * 0.1
+            ray_x += ray_dir_x * 0.2
+            ray_y += ray_dir_y * 0.2
 
 # Main part of the application
 
