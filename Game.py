@@ -12,12 +12,11 @@ class Game:
         self.width = master.winfo_screenwidth()
         
         # Set initial window geometry and background color
-        halfHSize = self.height // 2
-        halfWSize = self.width // 2
         self.master.attributes('-fullscreen',True)
         self.master.config(bg="black",cursor="none")
-        self.player_x = 80  # Example starting x position
-        self.player_y = 80  # Example starting y position
+        self.player_x = 0
+        self.player_y = 0
+        self.movment_speed = 1
         self.count = 0
         self.tile_size =16
         self.start_check = False
@@ -90,58 +89,57 @@ class Game:
         
         # Schedule the next frame 
         self.master.after(self.frame_rate, self.update_game)
-        
-    def movement(self):
 
+    def collision_check(self):
+        flag = False
+        self.player_tile_x = int(self.player_x//self.tile_size)
+        self.player_tile_y = int(self.player_y//self.tile_size)
+        self.next_x = self.player_tile_x +1
+        self.next_y =self.player_tile_y +1
+        if self.map[self.player_tile_x][self.player_tile_y]==1:
+            print("collision")
+            flag = True
+            return flag
+        else:
+            return flag
+
+    def movement(self):
         
-        if "w" in self.pressed_keys and "a" in self.pressed_keys:
-            strafe_angle = self.player_angle + (math.pi/2)
-            forward_x =  5 * math.cos(self.player_angle)
-            forward_y = 5 * math.sin(self.player_angle)
-            strafe_x = 5 * math.cos(strafe_angle)
-            strafe_y = 5 * math.sin(strafe_angle)
-            strafe_direction = -1
-            self.player_x += forward_x +(strafe_direction*strafe_x)
-            self.player_y += forward_y +(strafe_direction*strafe_y)
-        elif "w" in self.pressed_keys and "d" in self.pressed_keys:
-            strafe_angle = self.player_angle + (math.pi/2)
-            forward_x =  5 * math.cos(self.player_angle)
-            forward_y = 5 * math.sin(self.player_angle)
-            strafe_x = 5 * math.cos(strafe_angle)
-            strafe_y = 5 * math.sin(strafe_angle)
-            strafe_direction = 1
-            self.player_x += forward_x +(strafe_direction*strafe_x)
-            self.player_y += forward_y +(strafe_direction*strafe_y)
-        elif "s" in self.pressed_keys and "a" in self.pressed_keys:
-            strafe_angle = self.player_angle + (math.pi/2)
-            forward_x =  -5 * math.cos(self.player_angle)
-            forward_y = -5 * math.sin(self.player_angle)
-            strafe_x = -5 * math.cos(strafe_angle)
-            strafe_y = -5 * math.sin(strafe_angle)
-            strafe_direction = 1
-            self.player_x += forward_x +(strafe_direction*strafe_x)
-            self.player_y += forward_y +(strafe_direction*strafe_y)
-        elif "s" in self.pressed_keys and "d" in self.pressed_keys:
-            strafe_angle = self.player_angle + (math.pi/2)
-            forward_x =  -5 * math.cos(self.player_angle)
-            forward_y = -5 * math.sin(self.player_angle)
-            strafe_x = -5 * math.cos(strafe_angle)
-            strafe_y = -5 * math.sin(strafe_angle)
-            strafe_direction = -1
-            self.player_x += forward_x +(strafe_direction*strafe_x)
-            self.player_y += forward_y +(strafe_direction*strafe_y)
-        elif "w" in self.pressed_keys:
-            self.player_x += 5 *math.cos(self.player_angle)
-            self.player_y += 5 *math.sin(self.player_angle)
-        elif "s" in self.pressed_keys:
-            self.player_x -= 5 *math.cos(self.player_angle)
-            self.player_y -= 5 *math.sin(self.player_angle)
-        elif "a" in self.pressed_keys:
-            self.player_x += 5 * math.cos(self.player_angle - (math.pi/2))
-            self.player_y += 5 * math.sin(self.player_angle - (math.pi/2))
-        elif "d" in self.pressed_keys:
-            self.player_x += 5 * math.cos(self.player_angle + (math.pi/2))
-            self.player_y += 5 * math.sin(self.player_angle + (math.pi/2))
+        flag =True
+        
+        forward_x = self.movment_speed * math.cos(self.player_angle)
+        forward_y = self.movment_speed * math.sin(self.player_angle)
+        strafe_angle = self.player_angle + (math.pi/2)
+        strafe_x = self.movment_speed * math.cos(strafe_angle)
+        strafe_y = self.movment_speed * math.sin(strafe_angle)
+
+        move_x,move_y = 0,0
+
+        if "w" in self.pressed_keys:
+            move_x += forward_x
+            move_y += forward_y
+        if "s" in self.pressed_keys:
+            move_x -= forward_x
+            move_y -= forward_y
+        
+        if "a" in self.pressed_keys:
+            move_x -= strafe_x
+            move_y -= strafe_y
+        if "d" in self.pressed_keys:
+            move_x += strafe_x
+            move_y += strafe_y
+        flag = self.collision_check()
+        if not flag:
+
+            self.player_x += move_x
+            self.player_y += move_y
+        else:
+            self.player_x -= move_x- 0.1
+            self.player_y -= move_y-0.1
+
+        print(self.player_tile_x)
+        print(self.player_tile_y)
+
 
     def create_background(self):
         """Creates and redraws the background."""
@@ -168,18 +166,17 @@ class Game:
                 x2 = x1 + self.tile_size
                 y2 = y1 + self.tile_size
 
-                #Draw tile on map colour them based on type of tile and implement characteristics of said tile (1= emplty space 2= player spawn 3= wall)
-                #if tile == 1:
-                    #self.canvas.create_rectangle(x1, y1, x2, y2, fill="grey")
+                #Draw tile on map colour them based on type of tile and implement characteristics of said tile (0= empty space 1= wall 2= player spawn)
+                if tile == 1:
+                    self.canvas.create_rectangle(x1, y1, x2, y2, fill="grey")
                     
-                if tile == 2 and self.start_check == False:  
+                elif tile == 2 and self.start_check == False:  
                     self.player_x = x2-8
                     self.player_y = y2-8
                     self.start_check = True
-                    self.canvas.create_rectangle(x1, y1, x2, y2, fill="green")
 
-                #elif tile == 0:
-                    #self.canvas.create_rectangle(x1, y1, x2, y2, fill="white")
+                elif tile == 0:
+                    self.canvas.create_rectangle(x1, y1, x2, y2, fill="white")
 
     def apply_ambient_light(self):
     # Add the ambient color to the wall color, ensuring values stay within range
@@ -242,14 +239,14 @@ class Game:
             # Check if the ray has hit a wall
             if self.map[grid_y][grid_x] == 1:  # Wall
                 #print(f"Ray hit a wall at grid cell ({grid_x}, {grid_y})")
-
+                self.canvas.create_line( player_x, player_y,  ray_x, ray_y, fill="yellow", width =1)
                 self.draw_2D_World(ray_x,ray_y,ray_angle)  
                 
                 return (grid_x, grid_y)
                 
             # Move the ray forward by a small amount
-            ray_x += ray_dir_x * 0.2
-            ray_y += ray_dir_y * 0.2
+            ray_x += ray_dir_x * 0.4
+            ray_y += ray_dir_y * 0.4
 
 # Main part of the application
 
