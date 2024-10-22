@@ -14,8 +14,8 @@ class Game:
         # Set initial window geometry and background color
         self.master.attributes('-fullscreen',True)
         self.master.config(bg="black",cursor="none")
-        self.player_x = 0
-        self.player_y = 0
+        self.player_x = 80
+        self.player_y = 80
         self.movment_speed = 1
         self.count = 0
         self.tile_size =16
@@ -90,23 +90,17 @@ class Game:
         # Schedule the next frame 
         self.master.after(self.frame_rate, self.update_game)
 
-    def collision_check(self):
-        flag = False
-        self.player_tile_x = int(self.player_x//self.tile_size)
-        self.player_tile_y = int(self.player_y//self.tile_size)
-        self.next_x = self.player_tile_x +1
-        self.next_y =self.player_tile_y +1
-        if self.map[self.player_tile_x][self.player_tile_y]==1:
+    def collision_check(self,next_x,next_y):
+        self.player_tile_x = int(next_x//self.tile_size)
+        self.player_tile_y = int(next_y//self.tile_size)
+
+        if self.map[self.player_tile_y][self.player_tile_x]==1:
             print("collision")
-            flag = True
-            return flag
+            return True
         else:
-            return flag
+            return False
 
     def movement(self):
-        
-        flag =True
-        
         forward_x = self.movment_speed * math.cos(self.player_angle)
         forward_y = self.movment_speed * math.sin(self.player_angle)
         strafe_angle = self.player_angle + (math.pi/2)
@@ -128,17 +122,17 @@ class Game:
         if "d" in self.pressed_keys:
             move_x += strafe_x
             move_y += strafe_y
-        flag = self.collision_check()
-        if not flag:
-
-            self.player_x += move_x
-            self.player_y += move_y
+        next_x = self.player_x + move_x
+        next_y = self.player_y + move_y
+        if not self.collision_check(next_x, next_y):
+            self.player_x = next_x
+            self.player_y = next_y
         else:
-            self.player_x -= move_x- 0.1
-            self.player_y -= move_y-0.1
+            self.player_x -= move_x 
+            self.player_y -= move_y 
+            print("movenot")
 
-        print(self.player_tile_x)
-        print(self.player_tile_y)
+
 
 
     def create_background(self):
@@ -214,7 +208,7 @@ class Game:
         final_color = self.apply_ambient_light()
         # Draw the vertical slice representing the wall
         self.canvas.create_line( pos_x, top,  pos_x, bottom, fill=final_color, width =ray_width*(self.num_rays/100), tag = "wall")
-        #self.canvas.create_polygon(self.count*(ray_width), top, self.count*(ray_width), bottom, fill="grey", outline='gray', width =ray_width*(self.num_rays/100))
+        #self.canvas.create_polygon(self.count*(ray_width), top, self.count*(ray_width), bottom, fill="grey", outline='gray', width =ray_width)
                 
         self.count +=1 
         if self.count >=self.num_rays:
