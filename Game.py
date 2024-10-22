@@ -174,6 +174,7 @@ class Game:
                     self.player_x = x2-8
                     self.player_y = y2-8
                     self.start_check = True
+                    self.canvas.create_rectangle(x1, y1, x2, y2, fill="green")
 
                 elif tile == 0:
                     self.canvas.create_rectangle(x1, y1, x2, y2, fill="white")
