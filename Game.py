@@ -22,7 +22,7 @@ class Game:
         self.start_check = False
         self.map = map_data
         self.player_angle = 20
-
+        self.prev_player_angle = 0
         # Create the canvas
         self.canvas = tk.Canvas(master, width=self.width, height=self.height)
         self.canvas.pack(fill="both", expand=True)
@@ -38,7 +38,7 @@ class Game:
         self.pressed_keys = set()
         self.master.bind("<KeyPress>", self.key_pressed)
         self.master.bind("<KeyRelease>", self.key_released)
-        self.master.bind("<Motion>", self.mouse_movment)
+        
         self.ignore_event = False
         
         # Start the game loop 
@@ -64,24 +64,28 @@ class Game:
 
         # Ensure player_angle wraps around properly
         self.player_angle %= 2 * math.pi
-        
+        self.master.bind("<Motion>", self.mouse_movment)
         self.move_delta = self.player_x + self.player_y
         self.centre_mouse()
         self.movement()
         
         #clear canvas only when player move
-        if self.move_delta != self.player_x+self.player_y:
+
+        #self.canvas.delete("all")
+        if self.move_delta != self.player_x+self.player_y or self.prev_player_angle != self.player_angle:
             self.canvas.delete("all")
-        
-        self.create_background()
-        self.render_map()
-        
+            self.create_background()
+            self.render_map()
+        self.prev_player_angle = self.player_angle
+        print("prev:"+str(self.prev_player_angle))
+        print("Player:"+str(self.player_angle))
         self.fov = 80 
         self.num_rays =  max(60, self.width//6)  # Number of rays to cast
+        
         for i in range(self.num_rays):
             ray_angle = (self.player_angle) + (self.fov / self.num_rays) * (i - self.num_rays /2) * (math.pi / 180)  # Convert degrees to radians
             self.cast_ray(self.player_x, self.player_y, ray_angle)
-        
+           
         # Schedule the next frame 
         self.master.after(self.frame_rate, self.update_game)
 
