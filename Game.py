@@ -26,6 +26,7 @@ class Game:
         # Create the canvas
         self.canvas = tk.Canvas(master, width=self.width, height=self.height)
         self.canvas.pack(fill="both", expand=True)
+        self.wall_color = (105,105,105)
         self.create_background()
         self.render_map()
 
@@ -33,7 +34,7 @@ class Game:
         self.master.bind("<Configure>", self.on_resize)
 
         # Set frame rate and keypress handling
-        self.frame_rate = 108
+        self.frame_rate = 60
         self.angle = 0
         self.pressed_keys = set()
         self.master.bind_all("<KeyPress>", self.key_pressed)
@@ -42,8 +43,8 @@ class Game:
         self.ignore_event = False
         
         # Start the game loop 
-        #self.ambient_color = (139,128, 0)
-        self.wall_color = (128,128,128)
+
+        
         self.update_game()
 
 
@@ -69,7 +70,7 @@ class Game:
         # Ensure player_angle wraps around properly
         self.player_angle %= 2 * math.pi
         self.fov = 80 
-        self.num_rays =  max(60, self.width//6)  # Number of rays to cast
+        self.num_rays =  max(60, self.width//5)  # Number of rays to cast
         
         #clear canvas only when player move or rotates
         if self.move_delta != self.player_x+self.player_y or self.prev_player_angle != self.player_angle:
@@ -149,8 +150,8 @@ class Game:
 
     def create_background(self):
         """Creates and redraws the background."""
-        self.canvas.create_rectangle(0, 0, self.width, self.height // 2, fill="#5A5A5A")  # Sky
-        self.canvas.create_rectangle(0, self.height // 2, self.width, self.height, fill="#A1662F")  # Ground
+        self.canvas.create_rectangle(0, 0, self.width, self.height // 2, fill="#696969")  # Sky
+        self.canvas.create_rectangle(0, self.height // 2, self.width, self.height, fill="#696969")  # Ground
 
     def on_resize(self, event):
         """Handles window resize events."""
@@ -189,8 +190,8 @@ class Game:
     # Add the ambient color to the wall color, ensuring values stay within range
         
         max_brightness = 60
-        min_brightness = 5
-        ambient_color = max(min_brightness,max_brightness -distance)
+        min_brightness = 10
+        ambient_color = max(min_brightness,max_brightness -distance+5)
         final_color = (
         min(self.wall_color[0] + int(ambient_color), 255),
         min(self.wall_color[1] + int(ambient_color), 255),
@@ -216,15 +217,15 @@ class Game:
             line_height = self.height  # Full height if ray_length is zero (very close)
 
         # Set a fixed width for each ray (each column on the screen)
-        ray_width = self.width/ self.num_rays
+        ray_width = self.width/ self.num_rays 
         pos_x = self.count * ray_width
         # Calculate where to draw the line vertically
         top = (self.height - line_height)/2
         bottom = top + line_height
         final_color = self.apply_ambient_light(ray_length)
         # Draw the vertical slice representing the wall
-        self.canvas.create_line( pos_x, top,  pos_x, bottom, fill=final_color, width =ray_width*(self.num_rays/100), tag = "wall")
-        #self.canvas.create_polygon(self.count*(ray_width), top, self.count*(ray_width), bottom, fill="grey", outline='gray', width =ray_width)
+        self.canvas.create_line( pos_x, top,  pos_x, bottom, fill=final_color, width =ray_width*1.08164, tag = "wall")
+
                 
         self.count +=1 
         if self.count >=self.num_rays:
@@ -236,7 +237,7 @@ class Game:
         ray_dir_y = math.sin(ray_angle)
 
         # Initialize the ray's starting position
-        ray_x = player_x
+        ray_x = player_x 
         ray_y = player_y
         
         while True:
