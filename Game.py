@@ -69,9 +69,7 @@ class Game:
         self.master.bind("<Motion>", self.mouse_movment)
         
         
-        #clear canvas only when player move
-
-        #self.canvas.delete("all")
+        #clear canvas only when player move or rotates
         if self.move_delta != self.player_x+self.player_y or self.prev_player_angle != self.player_angle:
             self.canvas.delete("all")
             self.create_background()
