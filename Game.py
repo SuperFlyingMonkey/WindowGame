@@ -13,10 +13,10 @@ class Game:
         
         # Set initial window geometry and background color
         self.master.attributes('-fullscreen',True)
-        self.master.config(bg="black",cursor="none")
+        self.master.config(cursor="none")
         self.player_x = 80
         self.player_y = 80
-        self.movment_speed = 1
+        self.movment_speed = 2
         self.count = 0
         self.tile_size =16
         self.start_check = False
@@ -33,7 +33,7 @@ class Game:
         self.master.bind("<Configure>", self.on_resize)
 
         # Set frame rate and keypress handling
-        self.frame_rate = 60
+        self.frame_rate = 108
         self.angle = 0
         self.pressed_keys = set()
         self.master.bind("<KeyPress>", self.key_pressed)
@@ -47,24 +47,9 @@ class Game:
         self.update_game()
 
 
-    def centre_mouse(self):
-        self.ignore_event = True
-        self.master.event_generate('<Motion>', warp=True, x=self.width // 2, y=self.height // 2)
-    def mouse_movment(self, event):
-        if self.ignore_event:
-            self.ignore_event = False
-            return
-        centre_x = self.master.winfo_width()//2
-        mouse_x = event.x
 
-        delta_x = mouse_x-centre_x
-        sensitivity = 0.0002
-        self.player_angle += delta_x*sensitivity
-
-        self.player_angle %= 2 * math.pi
-        self.centre_mouse()
-
-    def key_pressed(self, event):
+        
+    def key_pressed(self, event): 
         """Handles key press events."""
         self.pressed_keys.add(event.keysym)
 
@@ -75,14 +60,24 @@ class Game:
 
     def update_game(self):
         """Updates the game state and redraws everything."""
-        #self.canvas.delete("wall")
+
+
+        # Ensure player_angle wraps around properly
+        self.player_angle %= 2 * math.pi
+        
+        self.move_delta = self.player_x + self.player_y
         self.centre_mouse()
         self.movement()
-        self.canvas.delete("all")  # Clear canvas before drawing
+        
+        #clear canvas only when player move
+        if self.move_delta != self.player_x+self.player_y:
+            self.canvas.delete("all")
+        
         self.create_background()
         self.render_map()
+        
         self.fov = 80 
-        self.num_rays =  max(120, self.width//10)  # Number of rays to cast
+        self.num_rays =  max(60, self.width//6)  # Number of rays to cast
         for i in range(self.num_rays):
             ray_angle = (self.player_angle) + (self.fov / self.num_rays) * (i - self.num_rays /2) * (math.pi / 180)  # Convert degrees to radians
             self.cast_ray(self.player_x, self.player_y, ray_angle)
@@ -99,6 +94,25 @@ class Game:
             return True
         else:
             return False
+        
+    def centre_mouse(self):
+        self.ignore_event = True
+        self.master.event_generate('<Motion>', warp=True, x=self.width // 2, y=self.height // 2)
+    def mouse_movment(self, event):
+        if self.ignore_event:
+            self.ignore_event = False
+            return
+        centre_x = self.master.winfo_width()//2
+        mouse_x = event.x
+            
+        delta_x = mouse_x-centre_x
+
+        #self.canvas.delete("all")
+        sensitivity = 0.0003
+        self.player_angle += delta_x*sensitivity
+
+        self.player_angle %= 2 * math.pi
+        self.centre_mouse()        
 
     def movement(self):
         forward_x = self.movment_speed * math.cos(self.player_angle)
@@ -108,29 +122,31 @@ class Game:
         strafe_y = self.movment_speed * math.sin(strafe_angle)
 
         move_x,move_y = 0,0
+        
 
         if "w" in self.pressed_keys:
             move_x += forward_x
             move_y += forward_y
+            
         if "s" in self.pressed_keys:
             move_x -= forward_x
             move_y -= forward_y
-        
+            
         if "a" in self.pressed_keys:
             move_x -= strafe_x
             move_y -= strafe_y
+            
         if "d" in self.pressed_keys:
             move_x += strafe_x
             move_y += strafe_y
+            
         next_x = self.player_x + move_x
         next_y = self.player_y + move_y
         if not self.collision_check(next_x, next_y):
             self.player_x = next_x
             self.player_y = next_y
-        else:
-            self.player_x -= move_x 
-            self.player_y -= move_y 
-            print("movenot")
+
+            
 
 
 
@@ -161,17 +177,17 @@ class Game:
                 y2 = y1 + self.tile_size
 
                 #Draw tile on map colour them based on type of tile and implement characteristics of said tile (0= empty space 1= wall 2= player spawn)
-                if tile == 1:
-                    self.canvas.create_rectangle(x1, y1, x2, y2, fill="grey")
+                #if tile == 1:
+                    #self.canvas.create_rectangle(x1, y1, x2, y2, fill="grey")
                     
-                elif tile == 2 and self.start_check == False:  
+                if tile == 2 and self.start_check == False:  
                     self.player_x = x2-8
                     self.player_y = y2-8
                     self.start_check = True
                     self.canvas.create_rectangle(x1, y1, x2, y2, fill="green")
 
-                elif tile == 0:
-                    self.canvas.create_rectangle(x1, y1, x2, y2, fill="white")
+                #elif tile == 0:
+                    #self.canvas.create_rectangle(x1, y1, x2, y2, fill="white")
 
     def apply_ambient_light(self):
     # Add the ambient color to the wall color, ensuring values stay within range
@@ -234,7 +250,7 @@ class Game:
             # Check if the ray has hit a wall
             if self.map[grid_y][grid_x] == 1:  # Wall
                 #print(f"Ray hit a wall at grid cell ({grid_x}, {grid_y})")
-                self.canvas.create_line( player_x, player_y,  ray_x, ray_y, fill="yellow", width =1)
+                #self.canvas.create_line( player_x, player_y,  ray_x, ray_y, fill="yellow", width =1)
                 self.draw_2D_World(ray_x,ray_y,ray_angle)  
                 
                 return (grid_x, grid_y)
@@ -246,16 +262,25 @@ class Game:
 # Main part of the application
 
 map_data = [
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 2, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 1, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 1, 0, 0, 0, 0, 1],
-    [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 2, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 0, 1],
+    [1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1],
+    [1, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1],
+    [1, 1, 0, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 0, 1],
+    [1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1],
+    [1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1],
+    [1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 1, 1, 1, 1],
+    [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
 ]
 
 root = tk.Tk()
