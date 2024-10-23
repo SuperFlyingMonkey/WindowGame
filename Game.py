@@ -42,7 +42,7 @@ class Game:
         self.ignore_event = False
         
         # Start the game loop 
-        self.ambient_color = (10, 10, 10)
+        #self.ambient_color = (139,128, 0)
         self.wall_color = (128,128,128)
         self.update_game()
 
@@ -71,7 +71,6 @@ class Game:
         self.fov = 80 
         self.num_rays =  max(60, self.width//6)  # Number of rays to cast
         
-        
         #clear canvas only when player move or rotates
         if self.move_delta != self.player_x+self.player_y or self.prev_player_angle != self.player_angle:
             self.canvas.delete("wall")
@@ -79,7 +78,7 @@ class Game:
                 ray_angle = (self.player_angle) + (self.fov / self.num_rays) * (i - self.num_rays /2) * (math.pi / 180)  # Convert degrees to radians
                 self.cast_ray(self.player_x, self.player_y, ray_angle)
         self.prev_player_angle = self.player_angle 
-          
+
         # Schedule the next frame 
         self.master.after(self.frame_rate, self.update_game)
 
@@ -186,12 +185,16 @@ class Game:
                 #elif tile == 0:
                     #self.canvas.create_rectangle(x1, y1, x2, y2, fill="white")
 
-    def apply_ambient_light(self):
+    def apply_ambient_light(self, distance):
     # Add the ambient color to the wall color, ensuring values stay within range
+        
+        max_brightness = 60
+        min_brightness = 5
+        ambient_color = max(min_brightness,max_brightness -distance)
         final_color = (
-        min(self.wall_color[0] + self.ambient_color[0], 255),
-        min(self.wall_color[1] + self.ambient_color[1], 255),
-        min(self.wall_color[2] + self.ambient_color[2], 255)
+        min(self.wall_color[0] + int(ambient_color), 255),
+        min(self.wall_color[1] + int(ambient_color), 255),
+        min(self.wall_color[2] + int(ambient_color), 255)
     )
         return self.rgb_to_hex(final_color)
     
@@ -201,7 +204,7 @@ class Game:
     def draw_2D_World(self, ray_x, ray_y, ray_angle):
         # Calculate the distance from the player to the wall
         ray_length = math.sqrt((ray_x - self.player_x)**2 + (ray_y - self.player_y)**2)
-        #ray_length = ray_length * math.cos(self.player_angle)
+        #ray_length = ray_length * math.cos(self.player_angle-ray_angle)
     
         
     
@@ -218,7 +221,7 @@ class Game:
         # Calculate where to draw the line vertically
         top = (self.height - line_height)/2
         bottom = top + line_height
-        final_color = self.apply_ambient_light()
+        final_color = self.apply_ambient_light(ray_length)
         # Draw the vertical slice representing the wall
         self.canvas.create_line( pos_x, top,  pos_x, bottom, fill=final_color, width =ray_width*(self.num_rays/100), tag = "wall")
         #self.canvas.create_polygon(self.count*(ray_width), top, self.count*(ray_width), bottom, fill="grey", outline='gray', width =ray_width)
