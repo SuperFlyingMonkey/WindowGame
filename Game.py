@@ -1,3 +1,4 @@
+from PIL import Image
 import tkinter as tk
 import math
 
@@ -16,10 +17,11 @@ class Game:
         self.master.config(bg="black",cursor="none")
         self.player_x = 80
         self.player_y = 80
-        self.movment_speed = 1
+        self.movment_speed = 2
         self.count = 0
         self.tile_size =16
-        self.start_check = False
+        self.start_pos = False
+        self.start_check = True
         self.map = map_data
         self.player_angle = 20
 
@@ -28,12 +30,14 @@ class Game:
         self.canvas.pack(fill="both", expand=True)
         self.create_background()
         self.render_map()
+        self.wall_texture = Image.open('resources/floor.png')
+        self.texture_width,self.texture_height = self.wall_texture.size
 
         # Bind the window resize event
         self.master.bind("<Configure>", self.on_resize)
 
         # Set frame rate and keypress handling
-        self.frame_rate = 60
+        self.frame_rate = 30
         self.angle = 0
         self.pressed_keys = set()
         self.master.bind("<KeyPress>", self.key_pressed)
@@ -77,15 +81,18 @@ class Game:
         """Updates the game state and redraws everything."""
         #self.canvas.delete("wall")
         self.centre_mouse()
-        self.movement()
-        self.canvas.delete("all")  # Clear canvas before drawing
+        moved = self.movement()
+        #self.canvas.delete("all")  # Clear canvas before drawing
         self.create_background()
         self.render_map()
         self.fov = 80 
-        self.num_rays =  max(120, self.width//10)  # Number of rays to cast
-        for i in range(self.num_rays):
-            ray_angle = (self.player_angle) + (self.fov / self.num_rays) * (i - self.num_rays /2) * (math.pi / 180)  # Convert degrees to radians
-            self.cast_ray(self.player_x, self.player_y, ray_angle)
+        self.num_rays =  max(120, self.width//40)  # Number of rays to cast
+        if moved ==True or  self.start_check ==True:
+            #self.start_check = False
+            for i in range(self.num_rays):
+                print(i)
+                ray_angle = (self.player_angle) + (self.fov / self.num_rays) * (i - self.num_rays /2) * (math.pi / 180)  # Convert degrees to radians
+                self.cast_ray(self.player_x, self.player_y, ray_angle)
         
         # Schedule the next frame 
         self.master.after(self.frame_rate, self.update_game)
@@ -112,25 +119,25 @@ class Game:
         if "w" in self.pressed_keys:
             move_x += forward_x
             move_y += forward_y
+            return True
         if "s" in self.pressed_keys:
             move_x -= forward_x
             move_y -= forward_y
-        
+            return True
         if "a" in self.pressed_keys:
             move_x -= strafe_x
             move_y -= strafe_y
+            return True
         if "d" in self.pressed_keys:
             move_x += strafe_x
             move_y += strafe_y
+            return True
         next_x = self.player_x + move_x
         next_y = self.player_y + move_y
-        if not self.collision_check(next_x, next_y):
+        if  self.collision_check(next_x, next_y):
             self.player_x = next_x
             self.player_y = next_y
-        else:
-            self.player_x -= move_x 
-            self.player_y -= move_y 
-            print("movenot")
+        return False
 
 
 
@@ -161,61 +168,66 @@ class Game:
                 y2 = y1 + self.tile_size
 
                 #Draw tile on map colour them based on type of tile and implement characteristics of said tile (0= empty space 1= wall 2= player spawn)
-                if tile == 1:
-                    self.canvas.create_rectangle(x1, y1, x2, y2, fill="grey")
+                #if tile == 1:
+                #    self.canvas.create_rectangle(x1, y1, x2, y2, fill="grey")
                     
-                elif tile == 2 and self.start_check == False:  
+                if tile == 2 and self.start_pos == False:  
                     self.player_x = x2-8
                     self.player_y = y2-8
-                    self.start_check = True
-                    self.canvas.create_rectangle(x1, y1, x2, y2, fill="green")
+                    self.start_pos = True
+                    #self.canvas.create_rectangle(x1, y1, x2, y2, fill="green")
 
-                elif tile == 0:
-                    self.canvas.create_rectangle(x1, y1, x2, y2, fill="white")
-
-    def apply_ambient_light(self):
-    # Add the ambient color to the wall color, ensuring values stay within range
-        final_color = (
-        min(self.wall_color[0] + self.ambient_color[0], 255),
-        min(self.wall_color[1] + self.ambient_color[1], 255),
-        min(self.wall_color[2] + self.ambient_color[2], 255)
-    )
-        return self.rgb_to_hex(final_color)
+                #elif tile == 0:
+                #    self.canvas.create_rectangle(x1, y1, x2, y2, fill="white")
+    def get_texture_color(self, texture_x, texture_y, background_color=(90, 90, 90)):
+        pixel = self.wall_texture.getpixel((texture_x, texture_y))
+    
+    # If the image has an alpha channel (RGBA)
+        if len(pixel) == 4:
+            r, g, b, a = pixel
+        
+        # Blend with the background based on alpha value (0-255 scale)
+            blended_r = int((r * a / 255) + (background_color[0] * (255 - a) / 255))
+            blended_g = int((g * a / 255) + (background_color[1] * (255 - a) / 255))
+            blended_b = int((b * a / 255) + (background_color[2] * (255 - a) / 255))
+        
+        # Return the blended color as a hex string
+            return "#{:02x}{:02x}{:02x}".format(blended_r, blended_g, blended_b)
+    
+    # If the image is RGB, just return the color
+        return "#{:02x}{:02x}{:02x}".format(pixel[0], pixel[1], pixel[2])
     
     def rgb_to_hex(self,rgb):
         return "#{:02x}{:02x}{:02x}".format(rgb[0], rgb[1], rgb[2])
     
-    def draw_2D_World(self, ray_x, ray_y, ray_angle):
-        # Calculate the distance from the player to the wall
-        ray_length = math.sqrt((ray_x - self.player_x)**2 + (ray_y - self.player_y)**2)
-        #ray_length = ray_length * math.cos(self.player_angle)
-    
+    def draw_2D_World(self,line_height,ray_x):
         
-    
-        # Calculate the height of the line based on distance (inverse relation)
-        HEIGHT_CONSTANT = self.height * 10  
-        if ray_length > 0:
-            line_height = HEIGHT_CONSTANT / ray_length
-        else:
-            line_height = self.height  # Full height if ray_length is zero (very close)
-
         # Set a fixed width for each ray (each column on the screen)
-        ray_width = self.width/ self.num_rays
+        ray_width = self.width/ self.num_rays 
         pos_x = self.count * ray_width
         # Calculate where to draw the line vertically
         top = (self.height - line_height)/2
         bottom = top + line_height
-        final_color = self.apply_ambient_light()
+        #final_color = self.apply_ambient_light()
+        texture_x = int(ray_x % self.tile_size)
         # Draw the vertical slice representing the wall
-        self.canvas.create_line( pos_x, top,  pos_x, bottom, fill=final_color, width =ray_width*(self.num_rays/100), tag = "wall")
-        #self.canvas.create_polygon(self.count*(ray_width), top, self.count*(ray_width), bottom, fill="grey", outline='gray', width =ray_width)
+        for y in range(int(line_height)):
+        # Calculate the y position on the texture
+            texture_y = int(y * self.texture_height / line_height) % self.texture_height
+        
+        # Get the color from the texture
+            color = self.get_texture_color(texture_x, texture_y)
+        
+        # Draw the vertical line representing the wall
+            #self.canvas.create_line(pos_x, top + y, pos_x, top + y + 1, fill=color)
+        self.canvas.create_polygon(self.count*(ray_width), top, self.count*(ray_width), bottom, fill="grey", outline='gray', width =ray_width)
                 
         self.count +=1 
         if self.count >=self.num_rays:
             self.count =0  
         
     def cast_ray(self, player_x, player_y, ray_angle):
-        # Calculate the direction of the ray
+
         ray_dir_x = math.cos(ray_angle)
         ray_dir_y = math.sin(ray_angle)
 
@@ -233,9 +245,17 @@ class Game:
 
             # Check if the ray has hit a wall
             if self.map[grid_y][grid_x] == 1:  # Wall
+                        # Calculate the direction of the ray
+                ray_length = math.sqrt((ray_x - self.player_x)**2 + (ray_y - self.player_y)**2)
+                ray_length = ray_length * math.cos(ray_angle - self.player_angle)
+                HEIGHT_CONSTANT = self.height * 20 
+                if ray_length > 0:
+                    line_height = HEIGHT_CONSTANT / ray_length
+                else:
+                    line_height = self.height  # Full height if ray_length is zero (very close)
                 #print(f"Ray hit a wall at grid cell ({grid_x}, {grid_y})")
-                self.canvas.create_line( player_x, player_y,  ray_x, ray_y, fill="yellow", width =1)
-                self.draw_2D_World(ray_x,ray_y,ray_angle)  
+                #self.canvas.create_line( player_x, player_y,  ray_x, ray_y, fill="yellow", width =1)
+                self.draw_2D_World(line_height,ray_x)  
                 
                 return (grid_x, grid_y)
                 
