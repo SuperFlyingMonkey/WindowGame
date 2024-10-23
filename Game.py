@@ -61,13 +61,13 @@ class Game:
     def update_game(self):
         """Updates the game state and redraws everything."""
 
-
-        # Ensure player_angle wraps around properly
-        self.player_angle %= 2 * math.pi
-        self.master.bind("<Motion>", self.mouse_movment)
         self.move_delta = self.player_x + self.player_y
         self.centre_mouse()
         self.movement()
+        # Ensure player_angle wraps around properly
+        self.player_angle %= 2 * math.pi
+        self.master.bind("<Motion>", self.mouse_movment)
+        
         
         #clear canvas only when player move
 
