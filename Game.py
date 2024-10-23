@@ -36,8 +36,8 @@ class Game:
         self.frame_rate = 108
         self.angle = 0
         self.pressed_keys = set()
-        self.master.bind("<KeyPress>", self.key_pressed)
-        self.master.bind("<KeyRelease>", self.key_released)
+        self.master.bind_all("<KeyPress>", self.key_pressed)
+        self.master.bind_all("<KeyRelease>", self.key_released)
         
         self.ignore_event = False
         
@@ -62,28 +62,24 @@ class Game:
         """Updates the game state and redraws everything."""
 
         self.move_delta = self.player_x + self.player_y
-        self.centre_mouse()
+        self.master.bind("<Motion>", self.mouse_movment)
         self.movement()
+        self.centre_mouse()
+        
         # Ensure player_angle wraps around properly
         self.player_angle %= 2 * math.pi
-        self.master.bind("<Motion>", self.mouse_movment)
+        self.fov = 80 
+        self.num_rays =  max(60, self.width//6)  # Number of rays to cast
         
         
         #clear canvas only when player move or rotates
         if self.move_delta != self.player_x+self.player_y or self.prev_player_angle != self.player_angle:
-            self.canvas.delete("all")
-            self.create_background()
-            self.render_map()
-        self.prev_player_angle = self.player_angle
-        print("prev:"+str(self.prev_player_angle))
-        print("Player:"+str(self.player_angle))
-        self.fov = 80 
-        self.num_rays =  max(60, self.width//6)  # Number of rays to cast
-        
-        for i in range(self.num_rays):
-            ray_angle = (self.player_angle) + (self.fov / self.num_rays) * (i - self.num_rays /2) * (math.pi / 180)  # Convert degrees to radians
-            self.cast_ray(self.player_x, self.player_y, ray_angle)
-           
+            self.canvas.delete("wall")
+            for i in range(self.num_rays):
+                ray_angle = (self.player_angle) + (self.fov / self.num_rays) * (i - self.num_rays /2) * (math.pi / 180)  # Convert degrees to radians
+                self.cast_ray(self.player_x, self.player_y, ray_angle)
+        self.prev_player_angle = self.player_angle 
+          
         # Schedule the next frame 
         self.master.after(self.frame_rate, self.update_game)
 
@@ -92,7 +88,6 @@ class Game:
         self.player_tile_y = int(next_y//self.tile_size)
 
         if self.map[self.player_tile_y][self.player_tile_x]==1:
-            print("collision")
             return True
         else:
             return False
