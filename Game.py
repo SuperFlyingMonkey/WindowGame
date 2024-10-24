@@ -79,6 +79,7 @@ class Game:
         #clear canvas only when player move or rotates
         if self.move_delta != self.player_x+self.player_y or self.prev_player_angle != self.player_angle:
             self.canvas.delete("wall")
+            self.centre_mouse()
             for i in range(self.num_rays):
                 ray_angle = (self.player_angle) + (self.fov / self.num_rays) * (i - self.num_rays /2) * (math.pi / 180)  # Convert degrees to radians
                 self.cast_ray(self.player_x, self.player_y, ray_angle)
@@ -109,11 +110,11 @@ class Game:
         delta_x = mouse_x-centre_x
 
         #self.canvas.delete("all")
-        sensitivity = 0.0003
+        sensitivity = 0.0001
         self.player_angle += delta_x*sensitivity
 
         self.player_angle %= 2 * math.pi
-        self.centre_mouse()        
+                
 
     def movement(self):
         forward_x = self.movment_speed * math.cos(self.player_angle)
