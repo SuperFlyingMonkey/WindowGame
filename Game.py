@@ -39,7 +39,7 @@ class Game:
         self.pressed_keys = set()
         self.master.bind_all("<KeyPress>", self.key_pressed)
         self.master.bind_all("<KeyRelease>", self.key_released)
-        
+        self.master.bind("<Escape>", self.close_game)
         self.ignore_event = False
         
         # Start the game loop 
@@ -58,6 +58,10 @@ class Game:
         """Handles key release events."""
         if event.keysym in self.pressed_keys:
             self.pressed_keys.remove(event.keysym)
+
+    def close_game(self, event):
+        print("Game Closed")
+        root.destroy()
 
     def update_game(self):
         """Updates the game state and redraws everything."""
@@ -190,8 +194,12 @@ class Game:
     # Add the ambient color to the wall color, ensuring values stay within range
         
         max_brightness = 60
-        min_brightness = 10
-        ambient_color = max(min_brightness,max_brightness -distance+5)
+        min_brightness = 5
+
+
+
+        ambient_color = max(min_brightness,max_brightness -distance)
+        
         final_color = (
         min(self.wall_color[0] + int(ambient_color), 255),
         min(self.wall_color[1] + int(ambient_color), 255),
@@ -223,6 +231,7 @@ class Game:
         top = (self.height - line_height)/2
         bottom = top + line_height
         final_color = self.apply_ambient_light(ray_length)
+
         # Draw the vertical slice representing the wall
         self.canvas.create_line( pos_x, top,  pos_x, bottom, fill=final_color, width =ray_width*1.08164, tag = "wall")
 
